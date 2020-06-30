@@ -67,14 +67,29 @@ app.get('/api', function (req, res) {
     connDb(dados);
 });
 
+app.get('/imagens/:imagem', function (req, res) {
+    var img = req.params.imagem;
+
+    fs.readFile('./uploads/' + img, function (err, content) {
+        if (err) {
+            res.status(400).json(err);
+            return;
+        }
+
+        res.writeHead(200, { 'content-type': 'image/jpg' });
+        res.end(content);
+    });
+});
+
+
 app.post('/api', function (req, res) {
     res.setHeader("Access-Control-Allow-Origin", "*");
 
+    var data = req.body;
     var date = new Date();
     timeStamp = date.getTime();
     var urlImagem = timeStamp + '_' + req.files.arquivo.originalFilename;
     var caminhoOrigem = req.files.arquivo.path;
-    console.log(caminhoOrigem);
     var caminhoDestino = './uploads/' + urlImagem;
     var readS = fs.createReadStream(caminhoOrigem);
     var writeS = fs.createWriteStream(caminhoDestino);
@@ -87,12 +102,11 @@ app.post('/api', function (req, res) {
             return;
         }
 
-        var data = {
+        data = {
             urlImagem: urlImagem,
             titulo: req.body.titulo
         }
 
-        var data = req.body;
         var dados = {
             operacao: 'inserir',
             dados: data,
