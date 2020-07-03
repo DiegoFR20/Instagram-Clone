@@ -46,7 +46,7 @@ function query(db, data) {
         case 'pesquisar':
             collection.find(data.dados).toArray(data.callback);
             break;
-        case 'removerComentario':
+        case 'remover':
             collection.updateOne(
                 {},
                 {
@@ -183,7 +183,7 @@ app.put('/api/:id', function (req, res) {
 app.delete('/api/:id', function (req, res) {
     var id = req.params.id;
     var dados = {
-        operacao: 'removerComentario',
+        operacao: 'remover',
         data: id,
         collection: 'postagens',
         callback: function (err, records) {
