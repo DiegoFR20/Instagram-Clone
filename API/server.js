@@ -2,7 +2,7 @@ var express = require('express'),
     bodyParser = require('body-parser'),
     multiparty = require('connect-multiparty'),
     mongodb = require('mongodb').MongoClient,
-    objectID = require('mongodb').ObjectId,
+    ObjectId = require('mongodb').ObjectId,
     fs = require('fs');
 
 var app = express();
@@ -11,10 +11,20 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(multiparty());
 
+app.use(function (req, res, next) {
+
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
+    res.setHeader("Access-Control-Allow-Headers", "content-type");
+    res.setHeader("Access-Control-Allow-Credentials", true);
+
+    next();
+});
+
 app.listen(8080);
 
 var dbName = 'instagram';
-var mongoURL = 'mongodb+srv://DiegoFR:Freire15.@cluster0-wlpz2.mongodb.net/instagram?retryWrites=true&w=majority';
+var mongoURL = 'mongodb+srv://DiegoFR:Freire15.@cluster0-wlpz2.mongodb.net/probono?authSource=admin&replicaSet=Cluster0-shard-0&w=majority&readPreference=primary&appname=MongoDB%20Compass%20Community&retryWrites=true&ssl=true';
 
 var connDb = function (data) {
     mongodb.connect(mongoURL, { useNewUrlParser: true }, function (err, client) {
@@ -28,7 +38,7 @@ function query(db, data) {
     var collection = db.collection(data.collection);
     switch (data.operacao) {
         case 'atualizar':
-            collection.update(data.where, data.set);
+            collection.updateOne(data.where, data.set);
             break;
         case 'inserir':
             collection.insertOne(data.dados, data.callback);
@@ -36,35 +46,22 @@ function query(db, data) {
         case 'pesquisar':
             collection.find(data.dados).toArray(data.callback);
             break;
-        case 'remover':
-            data.where._id = objectID(data.where._id);
-            collection.remove(data.where, data.callback);
+        case 'removerComentario':
+            collection.updateOne(
+                {},
+                {
+                    $pull: {
+                        comentarios: { idComentario: ObjectId(data.data) }
+                    }
+                },
+                { multi: true }
+            );
             break;
     }
 }
 
 app.get('/', function (req, res) {
     res.send({ msg: 'Olá' });
-});
-
-
-app.get('/api', function (req, res) {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-
-    var data = req.body;
-    var dados = {
-        operacao: 'pesquisar',
-        dados: data,
-        collection: 'postagens',
-        callback: function (err, records) {
-            if (err) {
-                res.send(err);
-            } else {
-                res.json(records);
-            }
-        }
-    }
-    connDb(dados);
 });
 
 app.get('/imagens/:imagem', function (req, res) {
@@ -81,10 +78,41 @@ app.get('/imagens/:imagem', function (req, res) {
     });
 });
 
+app.get('/api', function (req, res) {
+    var data = req.body;
+    var dados = {
+        operacao: 'pesquisar',
+        dados: data,
+        collection: 'postagens',
+        callback: function (err, records) {
+            if (err) {
+                res.send(err);
+            } else {
+                res.json(records);
+            }
+        }
+    }
+    connDb(dados);
+});
+
+app.get('/api/:id', function (req, res) {
+    var data = req.params.id;
+    var dados = {
+        operacao: 'pesquisar',
+        dados: data,
+        collection: 'postagens',
+        callback: function (err, records) {
+            if (err) {
+                res.send(err);
+            } else {
+                res.json(records);
+            }
+        }
+    }
+    connDb(dados);
+});
 
 app.post('/api', function (req, res) {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-
     var data = req.body;
     var date = new Date();
     timeStamp = date.getTime();
@@ -125,4 +153,46 @@ app.post('/api', function (req, res) {
         if (error) throw error;
         console.log('File deleted!');
     });
+});
+
+app.put('/api/:id', function (req, res) {
+    var comentario = req.body.comentario,
+        id = ObjectId(req.params.id),
+        idComentario = new ObjectId();
+
+    var dados = {
+        operacao: 'atualizar',
+        where: { _id: id },
+        set: {
+            $push: {
+                comentarios: {
+                    idComentario: idComentario,
+                    comentario: comentario
+                }
+            }
+        },
+        collection: 'postagens',
+        callback: function (error, records) {
+            if (error) res.send(error);
+            res.json(records);
+        }
+    }
+    connDb(dados);
+});
+
+app.delete('/api/:id', function (req, res) {
+    var id = req.params.id;
+    var dados = {
+        operacao: 'removerComentario',
+        data: id,
+        collection: 'postagens',
+        callback: function (err, records) {
+            if (err) {
+                res.send(err);
+            } else {
+                res.json(records);
+            }
+        }
+    }
+    connDb(dados);
 });

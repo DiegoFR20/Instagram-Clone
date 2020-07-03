@@ -29,16 +29,64 @@
 						for (i = 0; i < data.length; i++) {
 							$('#container_timeline').append(
 								'<div class="publicacao">' +
-									'<span class="titulo">' +
-										data[i].titulo +
-									'</span>' +
-									'<img src="http://localhost:8080/imagens/'+data[i].urlImagem+'"/>'+
+								'<span class="titulo">' +
+								data[i].titulo +
+								'</span>' +
+								'<img src="http://localhost:8080/imagens/' + data[i].urlImagem + '" />' +
+								'<div class="comentarios" id="comentarios_' + data[i]._id + '" ></div>' +
+								'<div class="comentar">' +
+								'<input type="text" class="form-control inputComentario" id="postagem_' + data[i]._id + '" placeholder="Adicione um comentário">' +
+								'<button class="btn btn-default btnPostagem" value="' + data[i]._id + '" type="button">Comentar</button>' +
+								'</div>' +
 								'</div>'
 							);
+
+							if (data[i].comentarios != undefined) {
+								var comentarios = data[i].comentarios;
+
+								for (j = 0; j < comentarios.length; j++) {
+									$('#comentarios_' + data[i]._id).append(
+										'<div class="txt_comentario">' +
+										'<button type="button" value="' + comentarios[j].idComentario + '" class="btn btn-default btn_remover_postagem">X</button>' +
+										comentarios[j].comentario +
+										'</div>'
+									);
+								}
+							}
 						}
+
+						$('.btn_remover_postagem').click(function () {
+							var idComentario = this.value;
+
+							var xhr = new XMLHttpRequest();
+							xhr.open('DELETE', 'http://localhost:8080/api/' + idComentario);
+
+							xhr.onload = function () {
+								if (xhr.status === 200) {
+									window.location.href = "/home";
+								}
+							};
+							xhr.send();
+						});
+
+						$('.btnPostagem').click(function () {
+							var id = this.value;
+							var idInputComentario = 'postagem_' + id;
+							var comentario = $('#' + idInputComentario).val();
+
+							var xhr = new XMLHttpRequest();
+							xhr.open('PUT', 'http://localhost:8080/api/' + id);
+							xhr.setRequestHeader('Content-Type', 'application/json');
+
+							xhr.onload = function () {
+								if (xhr.status === 200) {
+									window.location.href = "/home";
+								}
+							};
+							xhr.send(JSON.stringify({ comentario: comentario }));
+						});
 					}
 				}
-
 				xhr.send();
 			}
 
